@@ -64,11 +64,13 @@ export function PhoneVerification({
 
   if (isVerified && !changing) {
     return (
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-gray-700">{phone}</span>
-        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
-          Verified
-        </span>
+      <div className="flex items-center justify-between border border-gray-200 rounded-xl px-4 py-3">
+        <div className="flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
+          </svg>
+          <span className="text-sm font-medium text-gray-800">{phone}</span>
+        </div>
         <button
           onClick={() => {
             setChanging(true);
@@ -77,7 +79,7 @@ export function PhoneVerification({
             setMessage("");
             setError("");
           }}
-          className="text-xs text-gray-400 hover:text-gray-600 ml-2"
+          className="text-sm font-medium text-blue-600 hover:text-blue-800 transition"
         >
           Change
         </button>

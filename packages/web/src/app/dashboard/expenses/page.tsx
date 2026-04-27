@@ -25,7 +25,7 @@ export default async function ExpensesPage({
       ? { gte: new Date(year, 0, 1), lte: new Date(year, 11, 31, 23, 59, 59) }
       : undefined;
 
-  const [expenses, categories] = await Promise.all([
+  const [expenses, categories, budget] = await Promise.all([
     prisma.expense.findMany({
       where: {
         userId,
@@ -36,25 +36,30 @@ export default async function ExpensesPage({
       orderBy: { date: "desc" },
     }),
     prisma.category.findMany({ where: { userId }, orderBy: { name: "asc" } }),
+    prisma.monthlyBudget.findUnique({
+      where: { userId_year_month: { userId, year, month } },
+    }),
   ]);
 
+  const totalSpent = expenses.reduce((s, e) => s + e.amount, 0);
+
   return (
-    <div className="max-w-3xl mx-auto space-y-5">
+    <div className="max-w-4xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Expenses</h1>
-        <p className="text-sm text-gray-400 mt-0.5">All transactions</p>
+        <p className="text-sm text-gray-400 mt-0.5">Manage and review all your transactions</p>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 p-5">
-        <ExpenseFilters
-          categories={categories}
-          year={year}
-          month={month}
-          categoryId={categoryId}
-        />
-      </div>
+      <ExpenseFilters
+        categories={categories}
+        year={year}
+        month={month}
+        categoryId={categoryId}
+        budget={budget ? { startingBalance: budget.startingBalance } : null}
+        totalSpent={totalSpent}
+      />
 
-      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
         <ExpenseList expenses={expenses} />
       </div>
     </div>

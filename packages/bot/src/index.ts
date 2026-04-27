@@ -37,7 +37,7 @@ app.post("/logout", async (_req, res) => {
   }
 });
 
-const port = parseInt(process.env.BOT_PORT ?? "3001");
+const port = parseInt(process.env.PORT ?? process.env.BOT_PORT ?? "3001");
 app.listen(port, () => {
   console.log(`Bot HTTP server running on port ${port}`);
   startBot();

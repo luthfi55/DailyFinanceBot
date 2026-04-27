@@ -1,8 +1,10 @@
 node_modules/
 .env
 .env.local
+.env*.local
 .next/
 dist/
 build/
 *.session.json
 baileys_store.json
+auth_info_baileys/
