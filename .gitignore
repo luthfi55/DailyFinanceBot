@@ -1,0 +1,8 @@
+node_modules/
+.env
+.env.local
+.next/
+dist/
+build/
+*.session.json
+baileys_store.json
