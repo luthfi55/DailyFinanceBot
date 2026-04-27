@@ -123,7 +123,6 @@ export function MonthlyBreakdown({ expenses, categories, categoryBudgets }: Prop
                 <div className="flex items-center gap-3">
                   <div className="shrink-0 text-left w-16">
                     <div className="text-xs text-gray-500">{format(new Date(exp.date), "dd MMM")}</div>
-                    <div className="text-[10px] text-gray-300">{format(new Date(exp.date), "HH:mm")}</div>
                   </div>
                   <div>
                     <span className="text-sm text-gray-700 font-medium">{exp.category.name}</span>

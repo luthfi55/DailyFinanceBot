@@ -38,10 +38,12 @@ model Category {
   color     String?
   icon      String?
   isDefault Boolean @default(false)
+  year      Int     @default(0)
+  month     Int     @default(0)
   expenses  Expense[]
   budgets   CategoryBudget[]
 
-  @@unique([userId, name])
+  @@unique([userId, name, year, month])
 }
 
 model Expense {

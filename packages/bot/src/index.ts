@@ -1,5 +1,5 @@
 import express from "express";
-import { startBot, getBotStatus, getSock } from "./bot";
+import { startBot, getBotStatus, getSock, logoutBot } from "./bot";
 
 const app = express();
 app.use(express.json());
@@ -25,6 +25,15 @@ app.post("/send-code", async (req, res) => {
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: "Failed to send message" });
+  }
+});
+
+app.post("/logout", async (_req, res) => {
+  try {
+    await logoutBot();
+    res.json({ ok: true });
+  } catch (e: any) {
+    res.status(503).json({ error: e.message ?? "Failed to logout" });
   }
 });
 

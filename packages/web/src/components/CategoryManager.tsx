@@ -4,10 +4,31 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Category } from "@finance/db";
 
-export function CategoryManager({ categories }: { categories: Category[] }) {
+export function CategoryManager({
+  categories,
+  year = 0,
+  month = 0,
+}: {
+  categories: Category[];
+  year?: number;
+  month?: number;
+}) {
+  const COLOR_OPTIONS = [
+    { label: "blue",   hex: "#3b82f6" },
+    { label: "green",  hex: "#22c55e" },
+    { label: "red",    hex: "#ef4444" },
+    { label: "orange", hex: "#f97316" },
+    { label: "yellow", hex: "#eab308" },
+    { label: "brown",  hex: "#92400e" },
+    { label: "gray",   hex: "#6b7280" },
+    { label: "black",  hex: "#111827" },
+    { label: "pink",   hex: "#ec4899" },
+    { label: "purple", hex: "#a855f7" },
+  ];
+
   const router = useRouter();
   const [newName, setNewName] = useState("");
-  const [newColor, setNewColor] = useState("#3b82f6");
+  const [newColor, setNewColor] = useState(COLOR_OPTIONS[0].hex);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -19,7 +40,7 @@ export function CategoryManager({ categories }: { categories: Category[] }) {
     const res = await fetch("/api/categories", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newName.trim(), color: newColor }),
+      body: JSON.stringify({ name: newName.trim(), color: newColor, year, month }),
     });
 
     setLoading(false);
@@ -35,7 +56,6 @@ export function CategoryManager({ categories }: { categories: Category[] }) {
 
   async function deleteCategory(id: string) {
     if (!confirm("Delete this category? All related expenses will also be deleted.")) return;
-
     await fetch(`/api/categories/${id}`, { method: "DELETE" });
     router.refresh();
   }
@@ -56,12 +76,22 @@ export function CategoryManager({ categories }: { categories: Category[] }) {
         </div>
         <div>
           <label className="block text-xs text-gray-500 mb-1">Color</label>
-          <input
-            type="color"
-            value={newColor}
-            onChange={(e) => setNewColor(e.target.value)}
-            className="h-9 w-12 border border-gray-300 rounded-lg cursor-pointer"
-          />
+          <div className="flex gap-1.5 flex-wrap">
+            {COLOR_OPTIONS.map((c) => (
+              <button
+                key={c.hex}
+                type="button"
+                title={c.label}
+                onClick={() => setNewColor(c.hex)}
+                className="w-6 h-6 rounded-full border-2 transition"
+                style={{
+                  backgroundColor: c.hex,
+                  borderColor: newColor === c.hex ? "#1e40af" : "transparent",
+                  outline: newColor === c.hex ? "2px solid #93c5fd" : "none",
+                }}
+              />
+            ))}
+          </div>
         </div>
         <button
           onClick={addCategory}
@@ -96,7 +126,7 @@ export function CategoryManager({ categories }: { categories: Category[] }) {
           </div>
         ))}
         {categories.length === 0 && (
-          <p className="text-sm text-gray-400">No categories yet.</p>
+          <p className="text-sm text-gray-400">No categories for this month.</p>
         )}
       </div>
     </div>

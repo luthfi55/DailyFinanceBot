@@ -32,11 +32,30 @@ export function QRCodePanel() {
     }
   }
 
+  async function handleLogout() {    
+    if (!confirm("Are you sure you want to logout? You will need to scan the QR code again to reconnect.")) return;
+    try {
+      const res = await fetch("/api/bot/logout", { method: "POST" });
+      if (!res.ok) throw new Error();
+      setStatus("loading");
+    } catch {
+      alert("Failed to logout bot.");
+    }
+  }
+
   if (status === "connected") {
     return (
-      <div className="flex items-center gap-2 text-green-600">
-        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-        <span className="text-sm font-medium">Bot connected</span>
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 text-green-600">
+          <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+          <span className="text-sm font-medium">Bot connected</span>
+        </div>
+        <button
+          onClick={handleLogout}
+          className="text-xs text-red-500 hover:text-red-700 underline"
+        >
+          Logout
+        </button>
       </div>
     );
   }

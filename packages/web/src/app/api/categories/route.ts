@@ -8,15 +8,17 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const userId = (session.user as any).id;
-  const { name, color } = await req.json();
+  const { name, color, year = 0, month = 0 } = await req.json();
 
   if (!name) return NextResponse.json({ error: "Name is required" }, { status: 400 });
 
-  const existing = await prisma.category.findUnique({ where: { userId_name: { userId, name } } });
+  const existing = await prisma.category.findUnique({
+    where: { userId_name_year_month: { userId, name, year, month } },
+  });
   if (existing) return NextResponse.json({ error: "Category already exists" }, { status: 409 });
 
   const category = await prisma.category.create({
-    data: { userId, name, color: color || null },
+    data: { userId, name, color: color || null, year, month },
   });
 
   return NextResponse.json(category, { status: 201 });
