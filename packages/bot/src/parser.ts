@@ -21,7 +21,6 @@ const MONTH_MAP: Record<string, number> = {
   juli: 6,
   agustus: 7,
   oktober: 9,
-  november: 10,
   desember: 11,
 };
 
