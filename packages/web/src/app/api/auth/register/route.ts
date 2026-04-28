@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma, type DefaultCategory } from "@finance/db";
+import { prisma } from "@finance/db";
 import bcrypt from "bcryptjs";
 
 export async function POST(req: NextRequest) {
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
       password: hashed,
       role: isAdmin ? "ADMIN" : "USER",
       categories: {
-        create: defaultCategories.map((cat: DefaultCategory) => ({
+        create: defaultCategories.map((cat) => ({
           name: cat.name,
           color: cat.color,
           icon: cat.icon,

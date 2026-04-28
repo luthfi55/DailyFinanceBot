@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate --schema ../db/prisma/schema.prisma && next build",
     "start": "next start",
     "lint": "next lint"
   },
@@ -22,6 +22,7 @@
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
+    "prisma": "^5.14.0",
     "@types/node": "^20.0.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
