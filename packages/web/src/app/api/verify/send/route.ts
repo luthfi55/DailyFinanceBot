@@ -33,7 +33,10 @@ export async function POST(req: NextRequest) {
   await prisma.verificationCode.create({ data: { userId, code, expiresAt } });
 
   // Kirim kode via bot
-  const botUrl = process.env.BOT_URL ?? "http://localhost:3001";
+  let botUrl = process.env.BOT_URL ?? "http://localhost:3001";
+  if (!botUrl.startsWith("http://") && !botUrl.startsWith("https://")) {
+    botUrl = `https://${botUrl}`;
+  }
   try {
     const botRes = await fetch(`${botUrl}/send-code`, {
       method: "POST",

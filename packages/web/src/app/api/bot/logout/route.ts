@@ -9,7 +9,10 @@ export async function POST() {
   }
 
   try {
-    const botUrl = process.env.BOT_URL ?? "http://localhost:3001";
+    let botUrl = process.env.BOT_URL ?? "http://localhost:3001";
+    if (!botUrl.startsWith("http://") && !botUrl.startsWith("https://")) {
+      botUrl = `https://${botUrl}`;
+    }
     const res = await fetch(`${botUrl}/logout`, {
       method: "POST",
       signal: AbortSignal.timeout(5000),
