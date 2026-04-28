@@ -99,6 +99,26 @@ export async function handleMessage(sock: WASocket, msg: proto.IWebMessageInfo) 
       return;
     }
 
+    case "help": {
+      const reply =
+        "🤖 *Daily Finance Bot Commands*\n\n" +
+        "*Input Expense:*\n" +
+        "• food-14000\n" +
+        "  → save expense for today\n" +
+        "• food-14000-27-April-2026\n" +
+        "  → save for specific date\n\n" +
+        "*Commands:*\n" +
+        "• /format — show input format\n" +
+        "• /today — today's expenses\n" +
+        "• /date DD-Month-YYYY — expenses by date\n" +
+        "• /undo — remove last expense\n" +
+        "• /clear — clear all expenses\n\n" +
+        "🌐 Web: https://daily-finance-bot-web.vercel.app";
+      await sock.sendMessage(jid, { text: reply });
+      logInternal("success", "/help command", {});
+      return;
+    }
+
     case "today": {
       const today = new Date();
       const expenses = await prisma.expense.findMany({

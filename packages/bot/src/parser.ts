@@ -32,6 +32,7 @@ export type ParsedExpense = {
 
 export type ParsedCommand =
   | { type: "format" }
+  | { type: "help" }
   | { type: "today" }
   | { type: "date"; date: Date }
   | { type: "undo" }
@@ -45,6 +46,7 @@ export function parseInput(text: string): ParsedCommand {
 
   // Commands
   if (lower === "/format") return { type: "format" };
+  if (lower === "/help") return { type: "help" };
   if (lower === "/today") return { type: "today" };
   if (lower === "/undo") return { type: "undo" };
   if (lower === "/clear") return { type: "clear" };
