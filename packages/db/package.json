@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "scripts": {
     "generate": "prisma generate",
-    "build": "tsc",
+    "build": "prisma generate && tsc && node -e \"const fs=require('fs'); fs.cpSync('src/generated','dist/generated',{recursive:true})\"",
     "db:push": "prisma db push",
     "studio": "prisma studio"
   },

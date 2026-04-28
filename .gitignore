@@ -8,3 +8,4 @@ build/
 *.session.json
 baileys_store.json
 auth_info_baileys/
+packages/db/src/generated/
