@@ -9,7 +9,7 @@ export async function GET() {
   }
 
   try {
-    const botUrl = process.env.BOT_INTERNAL_URL ?? "http://localhost:3001";
+    const botUrl = process.env.BOT_URL ?? "http://localhost:3001";
     const res = await fetch(`${botUrl}/status`, { signal: AbortSignal.timeout(3000) });
     const data = await res.json();
     return NextResponse.json(data);
