@@ -73,11 +73,11 @@ export default async function DashboardPage({
     <div>
       <DashboardHeader year={year} month={month} />
 
-      <div className="grid grid-cols-5 gap-5 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 md:gap-5 items-start">
         {/* Left column */}
-        <div className="col-span-3 space-y-5">
+        <div className="md:col-span-3 space-y-4 md:space-y-5">
           {/* Stat cards */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {/* Total Spending */}
             <div className="bg-white rounded-2xl border border-gray-200 p-4">
               <div className="flex items-center justify-between mb-3">
@@ -135,7 +135,7 @@ export default async function DashboardPage({
         </div>
 
         {/* Right column */}
-        <div className="col-span-2 space-y-5">
+        <div className="md:col-span-2 space-y-4 md:space-y-5">
           <CalendarCard expenses={expenses} month={monthDate} year={year} monthNum={month} />
           {isCurrentMonth && <AddExpenseCard categories={categories} />}
           <BreakdownSidebar expenses={expenses} categories={categories} categoryBudgets={categoryBudgets} />

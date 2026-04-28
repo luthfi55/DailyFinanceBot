@@ -49,7 +49,7 @@ export function Sidebar({ role, username }: { role: string; username: string }) 
   }
 
   return (
-    <aside className="w-56 bg-white border-r border-gray-100 flex flex-col h-screen">
+    <aside className="hidden md:flex w-56 bg-white border-r border-gray-100 flex-col h-screen">
       {/* Header */}
       <div className="px-5 py-6">
         <p className="font-bold text-gray-900 text-base">Daily Finance</p>
