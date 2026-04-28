@@ -20,7 +20,7 @@ app.post("/send-code", async (req, res) => {
   try {
     const jid = phoneNumber + "@s.whatsapp.net";
     await sock.sendMessage(jid, {
-      text: `Kode verifikasi Daily Finance Bot kamu:\n\n*${code}*\n\nBerlaku 10 menit. Jangan bagikan ke siapapun.`,
+      text: `Your Daily Finance Bot verification code:\n\n*${code}*\n\nValid for 10 minutes. Do not share it with anyone.`,
     });
     res.json({ ok: true });
   } catch (e) {
