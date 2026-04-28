@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { useGlobalLoading } from "./providers/GlobalLoadingProvider";
+import { useGlobalLoading } from "./GlobalLoadingProvider";
 
 export function useAction<T extends (...args: any[]) => Promise<any>>(
   action: T
