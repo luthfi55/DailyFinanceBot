@@ -67,9 +67,9 @@ export default async function SettingsPage({
         <div className="space-y-5">
           {/* Monthly Budget */}
           <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-5">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
               <MonthNav year={year} month={month} basePath="/settings" />
-              <span className="text-xs font-semibold tracking-widest text-gray-400 border border-gray-200 rounded-full px-3 py-1 uppercase">
+              <span className="text-xs font-semibold tracking-widest text-gray-400 border border-gray-200 rounded-full px-3 py-1 uppercase shrink-0">
                 Planning
               </span>
             </div>

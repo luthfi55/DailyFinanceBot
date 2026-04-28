@@ -29,7 +29,7 @@ export function MonthNav({
       >
         ←
       </button>
-      <span className="text-2xl font-bold text-gray-900 min-w-[180px] text-center">{label}</span>
+      <span className="text-xl md:text-2xl font-bold text-gray-900 text-center">{label}</span>
       <button
         onClick={() => go(1)}
         className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-800 transition text-sm"
