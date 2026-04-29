@@ -21,9 +21,11 @@ export async function POST(req: NextRequest) {
 
   const isAdmin = username === process.env.ADMIN_USERNAME;
 
-  const defaultCategories = await prisma.defaultCategory.findMany({
-    orderBy: { order: "asc" },
-  });
+  const defaultCategories = [
+    { name: "Food", color: "#22c55e", icon: null },
+    { name: "Transportation", color: "#3b82f6", icon: null },
+    { name: "Entertainment", color: "#a855f7", icon: null },
+  ];
 
   const user = await prisma.user.create({
     data: {
@@ -37,6 +39,8 @@ export async function POST(req: NextRequest) {
           color: cat.color,
           icon: cat.icon,
           isDefault: true,
+          year: 0,
+          month: 0,
         })),
       },
     },

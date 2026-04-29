@@ -15,6 +15,10 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
   if (!category) return NextResponse.json({ error: "Category not found" }, { status: 404 });
 
+  if (category.year === 0 && category.month === 0) {
+    return NextResponse.json({ error: "Default template categories cannot be deleted" }, { status: 403 });
+  }
+
   await prisma.category.delete({ where: { id: params.id } });
 
   return NextResponse.json({ ok: true });

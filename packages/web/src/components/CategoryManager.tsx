@@ -32,6 +32,11 @@ export function CategoryManager({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const [copyYear, setCopyYear] = useState(year);
+  const [copyMonth, setCopyMonth] = useState(month);
+  const [copyLoading, setCopyLoading] = useState(false);
+  const [copyError, setCopyError] = useState("");
+
   async function addCategory() {
     if (!newName.trim()) return;
     setLoading(true);
@@ -55,6 +60,27 @@ export function CategoryManager({
     if (!confirm("Delete this category? All related expenses will also be deleted.")) return;
     await fetch(`/api/categories/${id}`, { method: "DELETE" });
     router.refresh();
+  }
+
+  async function copyFromMonth() {
+    if (copyYear === year && copyMonth === month) {
+      setCopyError("Cannot copy from the same month");
+      return;
+    }
+    setCopyLoading(true);
+    setCopyError("");
+    const res = await fetch("/api/categories/copy", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fromYear: copyYear, fromMonth: copyMonth, toYear: year, toMonth: month }),
+    });
+    setCopyLoading(false);
+    if (!res.ok) {
+      const data = await res.json();
+      setCopyError(data.error ?? "Failed to copy categories");
+    } else {
+      router.refresh();
+    }
   }
 
   return (
@@ -99,6 +125,37 @@ export function CategoryManager({
       </div>
 
       {error && <p className="text-sm text-red-500">{error}</p>}
+
+      {/* Copy from another month */}
+      <div className="border border-gray-200 rounded-xl p-4 space-y-3">
+        <p className="text-xs font-medium text-gray-600">Copy categories from another month</p>
+        <div className="flex gap-2">
+          <input
+            type="number"
+            value={copyYear}
+            onChange={(e) => setCopyYear(parseInt(e.target.value) || 0)}
+            className="w-20 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Year"
+          />
+          <input
+            type="number"
+            min={1}
+            max={12}
+            value={copyMonth}
+            onChange={(e) => setCopyMonth(parseInt(e.target.value) || 0)}
+            className="w-16 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Month"
+          />
+          <button
+            onClick={copyFromMonth}
+            disabled={copyLoading}
+            className="flex-1 bg-gray-100 text-gray-800 py-2 rounded-xl text-sm font-medium hover:bg-gray-200 disabled:opacity-50 transition"
+          >
+            {copyLoading ? "Copying..." : "Copy"}
+          </button>
+        </div>
+        {copyError && <p className="text-sm text-red-500">{copyError}</p>}
+      </div>
 
       {/* Category list */}
       <div className="space-y-1">

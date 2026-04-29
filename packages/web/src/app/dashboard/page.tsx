@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@finance/db";
+import { prisma, ensureCategoriesForMonth } from "@finance/db";
 import { startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { MonthlyPerformance } from "@/components/MonthlyPerformance";
@@ -27,16 +27,11 @@ export default async function DashboardPage({
   const monthEnd = endOfMonth(monthDate);
   const prevMonth = subMonths(monthDate, 1);
 
-  let categories = await prisma.category.findMany({
+  await ensureCategoriesForMonth(userId, year, month);
+  const categories = await prisma.category.findMany({
     where: { userId, year, month },
     orderBy: { name: "asc" },
   });
-  if (categories.length === 0) {
-    categories = await prisma.category.findMany({
-      where: { userId, year: 0, month: 0 },
-      orderBy: { name: "asc" },
-    });
-  }
 
   const [expenses, budget, categoryBudgets, prevAgg] = await Promise.all([
     prisma.expense.findMany({

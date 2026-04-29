@@ -163,14 +163,6 @@ exports.Prisma.VerificationCodeScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
-exports.Prisma.DefaultCategoryScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  color: 'color',
-  icon: 'icon',
-  order: 'order'
-};
-
 exports.Prisma.MonthlyBudgetScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -222,7 +214,6 @@ exports.Prisma.ModelName = {
   Category: 'Category',
   Expense: 'Expense',
   VerificationCode: 'VerificationCode',
-  DefaultCategory: 'DefaultCategory',
   MonthlyBudget: 'MonthlyBudget',
   BudgetAllocation: 'BudgetAllocation',
   CategoryBudget: 'CategoryBudget'

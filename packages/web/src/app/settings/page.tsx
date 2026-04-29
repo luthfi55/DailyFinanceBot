@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@finance/db";
+import { prisma, ensureCategoriesForMonth } from "@finance/db";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { CategoryManager } from "@/components/CategoryManager";
 import { PhoneVerification } from "@/components/PhoneVerification";
@@ -22,16 +22,11 @@ export default async function SettingsPage({
 
   const monthDate = new Date(year, month - 1, 1);
 
-  let categories = await prisma.category.findMany({
+  await ensureCategoriesForMonth(userId, year, month);
+  const categories = await prisma.category.findMany({
     where: { userId, year, month },
     orderBy: { name: "asc" },
   });
-  if (categories.length === 0) {
-    categories = await prisma.category.findMany({
-      where: { userId, year: 0, month: 0 },
-      orderBy: { name: "asc" },
-    });
-  }
 
   const [user, budget, categoryBudgets, expenses] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId }, select: { phoneNumber: true, isVerified: true } }),

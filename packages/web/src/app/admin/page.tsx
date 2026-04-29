@@ -1,24 +1,22 @@
 import { prisma } from "@finance/db";
 import { startOfMonth, endOfMonth } from "date-fns";
 import { QRCodePanel } from "@/components/QRCodePanel";
-import { DefaultCategoryManager } from "@/components/DefaultCategoryManager";
 
 export default async function AdminPage() {
   const now = new Date();
 
-  const [defaultCategories, totalExpenses] = await Promise.all([
-    prisma.defaultCategory.findMany({ orderBy: { order: "asc" } }),
-    prisma.expense.count({
-      where: { date: { gte: startOfMonth(now), lte: endOfMonth(now) } },
-    }),
-  ]);
+  const totalExpenses = await prisma.expense.count({
+    where: { date: { gte: startOfMonth(now), lte: endOfMonth(now) } },
+  });
 
   return (
     <div className="space-y-5 flex flex-col" style={{ minHeight: "calc(100vh - 3rem)" }}>
-      {/* Two-column main grid */}
+      {/* Main grid */}
       <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-5 flex-1 items-stretch">
         <QRCodePanel />
-        <DefaultCategoryManager categories={defaultCategories} />
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 flex items-center justify-center">
+          <p className="text-sm text-gray-400">Admin settings simplified. Default categories are now hardcoded.</p>
+        </div>
       </div>
 
       {/* Stats row */}

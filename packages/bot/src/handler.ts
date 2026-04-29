@@ -1,5 +1,5 @@
 import type { WASocket, proto } from "@whiskeysockets/baileys";
-import { prisma } from "@finance/db";
+import { prisma, ensureCategoriesForMonth } from "@finance/db";
 import { parseInput } from "./parser";
 import { lidToPhone, saveLidMapping } from "./bot";
 
@@ -271,28 +271,18 @@ export async function handleMessage(sock: WASocket, msg: proto.IWebMessageInfo) 
       const expYear = data.date.getFullYear();
       const expMonth = data.date.getMonth() + 1;
 
-      let category = await prisma.category.findFirst({
+      await ensureCategoriesForMonth(user.id, expYear, expMonth);
+
+      const category = await prisma.category.findFirst({
         where: { userId: user.id, name: { equals: data.category, mode: "insensitive" }, year: expYear, month: expMonth },
       });
-      if (!category) {
-        category = await prisma.category.findFirst({
-          where: { userId: user.id, name: { equals: data.category, mode: "insensitive" }, year: 0, month: 0 },
-        });
-      }
 
       if (!category) {
         const monthCats = await prisma.category.findMany({
-          where: { userId: user.id, OR: [{ year: expYear, month: expMonth }, { year: 0, month: 0 }] },
+          where: { userId: user.id, year: expYear, month: expMonth },
           select: { name: true },
         });
-        const seen = new Set<string>();
-        const allCategories = monthCats.filter((c: { name: string }) => {
-          const key = c.name.toLowerCase();
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
-        const names = allCategories.map((c: { name: string }) => c.name).join(", ");
+        const names = monthCats.map((c: { name: string }) => c.name).join(", ");
 
         await sock.sendMessage(jid, {
           text: `Category "${data.category}" not found.\nAvailable categories: ${names}`,
