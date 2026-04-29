@@ -4,6 +4,21 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Category } from "@finance/db";
 
+const MONTHS = [
+  { label: "January", value: 1 },
+  { label: "February", value: 2 },
+  { label: "March", value: 3 },
+  { label: "April", value: 4 },
+  { label: "May", value: 5 },
+  { label: "June", value: 6 },
+  { label: "July", value: 7 },
+  { label: "August", value: 8 },
+  { label: "September", value: 9 },
+  { label: "October", value: 10 },
+  { label: "November", value: 11 },
+  { label: "December", value: 12 },
+];
+
 export function CategoryManager({
   categories,
   year = 0,
@@ -14,16 +29,16 @@ export function CategoryManager({
   month?: number;
 }) {
   const COLOR_OPTIONS = [
-    { label: "green",  hex: "#22c55e" },
-    { label: "blue",   hex: "#3b82f6" },
-    { label: "red",    hex: "#ef4444" },
+    { label: "green", hex: "#22c55e" },
+    { label: "blue", hex: "#3b82f6" },
+    { label: "red", hex: "#ef4444" },
     { label: "indigo", hex: "#818cf8" },
-    { label: "black",  hex: "#111827" },
+    { label: "black", hex: "#111827" },
     { label: "orange", hex: "#f97316" },
     { label: "yellow", hex: "#eab308" },
     { label: "purple", hex: "#a855f7" },
-    { label: "pink",   hex: "#ec4899" },
-    { label: "brown",  hex: "#92400e" },
+    { label: "pink", hex: "#ec4899" },
+    { label: "brown", hex: "#92400e" },
   ];
 
   const router = useRouter();
@@ -32,8 +47,8 @@ export function CategoryManager({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const [copyYear, setCopyYear] = useState(year);
-  const [copyMonth, setCopyMonth] = useState(month);
+  const [sourceMonth, setSourceMonth] = useState(month > 1 ? month - 1 : 12);
+  const [sourceYear, setSourceYear] = useState(month > 1 ? year : year - 1);
   const [copyLoading, setCopyLoading] = useState(false);
   const [copyError, setCopyError] = useState("");
 
@@ -41,45 +56,67 @@ export function CategoryManager({
     if (!newName.trim()) return;
     setLoading(true);
     setError("");
-    const res = await fetch("/api/categories", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newName.trim(), color: newColor, year, month }),
-    });
-    setLoading(false);
-    if (!res.ok) {
-      const data = await res.json();
-      setError(data.error ?? "Failed to add category");
-    } else {
-      setNewName("");
-      router.refresh();
+    try {
+      const res = await fetch("/api/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newName.trim(), color: newColor, year, month }),
+      });
+      setLoading(false);
+      if (!res.ok) {
+        let msg = "Failed to add category";
+        try {
+          const data = await res.json();
+          msg = data.error ?? msg;
+        } catch {}
+        setError(msg);
+      } else {
+        setNewName("");
+        router.refresh();
+      }
+    } catch (err: any) {
+      setLoading(false);
+      setError(err?.message || "Network error");
     }
   }
 
   async function deleteCategory(id: string) {
     if (!confirm("Delete this category? All related expenses will also be deleted.")) return;
-    await fetch(`/api/categories/${id}`, { method: "DELETE" });
-    router.refresh();
+    try {
+      await fetch(`/api/categories/${id}`, { method: "DELETE" });
+      router.refresh();
+    } catch {
+      // ignore
+    }
   }
 
   async function copyFromMonth() {
-    if (copyYear === year && copyMonth === month) {
+    if (sourceYear === year && sourceMonth === month) {
       setCopyError("Cannot copy from the same month");
       return;
     }
     setCopyLoading(true);
     setCopyError("");
-    const res = await fetch("/api/categories/copy", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fromYear: copyYear, fromMonth: copyMonth, toYear: year, toMonth: month }),
-    });
-    setCopyLoading(false);
-    if (!res.ok) {
-      const data = await res.json();
-      setCopyError(data.error ?? "Failed to copy categories");
-    } else {
-      router.refresh();
+    try {
+      const res = await fetch("/api/categories/copy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sourceYear, sourceMonth, targetYear: year, targetMonth: month }),
+      });
+      setCopyLoading(false);
+      if (!res.ok) {
+        let msg = "Failed to copy categories";
+        try {
+          const data = await res.json();
+          msg = data.error ?? msg;
+        } catch {}
+        setCopyError(msg);
+      } else {
+        router.refresh();
+      }
+    } catch (err: any) {
+      setCopyLoading(false);
+      setCopyError(err?.message || "Network error");
     }
   }
 
@@ -126,25 +163,25 @@ export function CategoryManager({
 
       {error && <p className="text-sm text-red-500">{error}</p>}
 
-      {/* Copy from another month */}
+      {/* Copy categories from another month */}
       <div className="border border-gray-200 rounded-xl p-4 space-y-3">
         <p className="text-xs font-medium text-gray-600">Copy categories from another month</p>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          <select
+            value={sourceMonth}
+            onChange={(e) => setSourceMonth(parseInt(e.target.value))}
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          >
+            {MONTHS.map((m) => (
+              <option key={m.value} value={m.value}>{m.label}</option>
+            ))}
+          </select>
           <input
             type="number"
-            value={copyYear}
-            onChange={(e) => setCopyYear(parseInt(e.target.value) || 0)}
+            value={sourceYear}
+            onChange={(e) => setSourceYear(parseInt(e.target.value) || 0)}
             className="w-20 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Year"
-          />
-          <input
-            type="number"
-            min={1}
-            max={12}
-            value={copyMonth}
-            onChange={(e) => setCopyMonth(parseInt(e.target.value) || 0)}
-            className="w-16 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Month"
           />
           <button
             onClick={copyFromMonth}
@@ -186,7 +223,7 @@ export function CategoryManager({
           </div>
         ))}
         {categories.length === 0 && (
-          <p className="text-sm text-gray-400 px-3">No categories for this month.</p>
+          <p className="text-sm text-gray-400 px-3">No categories for this month. Add one above.</p>
         )}
       </div>
     </div>

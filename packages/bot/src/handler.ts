@@ -1,5 +1,5 @@
 import type { WASocket, proto } from "@whiskeysockets/baileys";
-import { prisma, ensureCategoriesForMonth } from "@finance/db";
+import { prisma } from "@finance/db";
 import { parseInput } from "./parser";
 import { lidToPhone, saveLidMapping } from "./bot";
 
@@ -271,8 +271,6 @@ export async function handleMessage(sock: WASocket, msg: proto.IWebMessageInfo) 
       const expYear = data.date.getFullYear();
       const expMonth = data.date.getMonth() + 1;
 
-      await ensureCategoriesForMonth(user.id, expYear, expMonth);
-
       const category = await prisma.category.findFirst({
         where: { userId: user.id, name: { equals: data.category, mode: "insensitive" }, year: expYear, month: expMonth },
       });
@@ -282,10 +280,10 @@ export async function handleMessage(sock: WASocket, msg: proto.IWebMessageInfo) 
           where: { userId: user.id, year: expYear, month: expMonth },
           select: { name: true },
         });
-        const names = monthCats.map((c: { name: string }) => c.name).join(", ");
+        const names = monthCats.map((c: { name: string }) => c.name).join(", ") || "None";
 
         await sock.sendMessage(jid, {
-          text: `Category "${data.category}" not found.\nAvailable categories: ${names}`,
+          text: `Category "${data.category}" not found.\nAvailable categories: ${names}\n\nAdd categories on the web app first.`,
         });
         logInternal("error", "Category not found", { category: data.category, available: names });
         return;

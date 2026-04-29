@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma, ensureCategoriesForMonth } from "@finance/db";
+import { prisma } from "@finance/db";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { CategoryManager } from "@/components/CategoryManager";
 import { PhoneVerification } from "@/components/PhoneVerification";
@@ -22,7 +22,6 @@ export default async function SettingsPage({
 
   const monthDate = new Date(year, month - 1, 1);
 
-  await ensureCategoriesForMonth(userId, year, month);
   const categories = await prisma.category.findMany({
     where: { userId, year, month },
     orderBy: { name: "asc" },
