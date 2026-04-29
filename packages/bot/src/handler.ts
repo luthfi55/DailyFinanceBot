@@ -25,9 +25,14 @@ function fmtNum(n: number) {
 }
 
 function normalizePhone(input: string): string {
-  let digits = input.replace(/\D/g, "").replace(/^\+/, "");
-  if (digits.startsWith("0")) digits = "62" + digits.slice(1);
+  // Hapus semua non-digit
+  let digits = input.replace(/\D/g, "");
+  // Hapus leading zeros (kecuali jika hanya 0)
+  digits = digits.replace(/^0+/, "");
+  // Jika dimulai dengan 8 dan belum ada 62, tambahkan 62
   if (digits.startsWith("8") && !digits.startsWith("62")) digits = "62" + digits;
+  // Jika masih dimulai dengan 0 setelah strip (edge case), ganti dengan 62
+  if (digits.startsWith("0")) digits = "62" + digits.slice(1);
   return digits;
 }
 
@@ -42,18 +47,28 @@ export async function handleMessage(sock: WASocket, msg: proto.IWebMessageInfo) 
   const phoneRaw = resolvedJid.replace("@s.whatsapp.net", "").split(":")[0];
   const phone = normalizePhone(phoneRaw);
 
-  console.log(`[handler] jid=${jid} phone=${phone} text=${text.slice(0, 40)}`);
+  console.log(`[handler] jid=${jid} resolvedJid=${resolvedJid} phoneRaw=${phoneRaw} phone=${phone} text=${text.slice(0, 40)}`);
+
+  // Jika LID dan tidak ada mapping, kita tidak bisa identifikasi nomor telepon
+  if (jid.endsWith("@lid") && !lidToPhone.has(jid)) {
+    console.log(`[handler] LID mapping not found for ${jid}`);
+    await sock.sendMessage(jid, {
+      text: "Unable to identify your phone number. Please try again in a moment, or send a message to the bot first to establish contact.",
+    });
+    logInternal("error", "LID mapping missing", { jid });
+    return;
+  }
 
   /* ─── 1. Identify user ─── */
   let user = await prisma.user.findUnique({ where: { phoneNumber: phone } });
   if (!user) user = await prisma.user.findFirst({ where: { phoneNumber: phone } });
 
   if (!user) {
-    console.log(`[handler] User not found for phone=${phone}`);
+    console.log(`[handler] User not found for phone=${phone} (raw=${phoneRaw})`);
     await sock.sendMessage(jid, {
       text: "This number is not registered. Please register on the web and verify your WhatsApp number.",
     });
-    logInternal("error", "Unregistered phone", { phone });
+    logInternal("error", "Unregistered phone", { phone, raw: phoneRaw });
     return;
   }
 

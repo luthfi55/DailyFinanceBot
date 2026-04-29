@@ -19,6 +19,31 @@ let activeSock: ReturnType<typeof makeWASocket> | null = null;
 // Maps LID (@lid) → phone JID (@s.whatsapp.net) for WhatsApp privacy-mode contacts
 export const lidToPhone = new Map<string, string>();
 
+const LID_MAP_PATH = path.resolve(process.cwd(), "lid-mapping.json");
+
+function loadLidMapping() {
+  try {
+    if (fs.existsSync(LID_MAP_PATH)) {
+      const data = JSON.parse(fs.readFileSync(LID_MAP_PATH, "utf-8")) as Record<string, string>;
+      for (const [k, v] of Object.entries(data)) {
+        lidToPhone.set(k, v);
+      }
+      console.log(`[bot] Loaded ${lidToPhone.size} LID mappings`);
+    }
+  } catch (err) {
+    console.error("[bot] Failed to load LID mapping:", err);
+  }
+}
+
+function saveLidMapping() {
+  try {
+    const obj = Object.fromEntries(lidToPhone);
+    fs.writeFileSync(LID_MAP_PATH, JSON.stringify(obj, null, 2));
+  } catch (err) {
+    console.error("[bot] Failed to save LID mapping:", err);
+  }
+}
+
 export function getSock() {
   return activeSock;
 }
@@ -35,6 +60,7 @@ export async function logoutBot() {
 }
 
 export async function startBot() {
+  loadLidMapping();
   const authPath = path.resolve(process.cwd(), "auth_info");
   const { state, saveCreds } = await useMultiFileAuthState(authPath);
   const { version } = await fetchLatestBaileysVersion();
@@ -84,11 +110,14 @@ export async function startBot() {
   });
 
   sock.ev.on("contacts.upsert", (contacts) => {
+    let changed = false;
     for (const contact of contacts) {
       if (contact.lid && contact.id) {
         lidToPhone.set(contact.lid, contact.id);
+        changed = true;
       }
     }
+    if (changed) saveLidMapping();
   });
 
   sock.ev.on("messages.upsert", async ({ messages, type }) => {
