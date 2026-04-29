@@ -8,4 +8,6 @@ build/
 *.session.json
 baileys_store.json
 auth_info_baileys/
+auth_info/
+lid-mapping.json
 packages/db/src/generated/
