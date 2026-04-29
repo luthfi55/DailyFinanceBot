@@ -3,6 +3,19 @@ import { prisma } from "@finance/db";
 import { parseInput } from "./parser";
 import { lidToPhone, saveLidMapping } from "./bot";
 
+// Track LIDs that are pending phone-number verification
+const pendingLidVerifications = new Map<string, { requestedAt: number }>();
+
+// Clean up old pending entries every 10 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [lid, data] of pendingLidVerifications) {
+    if (now - data.requestedAt > 10 * 60 * 1000) {
+      pendingLidVerifications.delete(lid);
+    }
+  }
+}, 10 * 60 * 1000);
+
 /* ─── Internal JSON logger ─── */
 function logInternal(status: "success" | "error", message: string, data?: unknown) {
   const payload: Record<string, unknown> = { status, message };
@@ -45,34 +58,61 @@ export async function handleMessage(sock: WASocket, msg: proto.IWebMessageInfo) 
 
   let resolvedJid = jid.endsWith("@lid") ? (lidToPhone.get(jid) ?? jid) : jid;
 
-  // Attempt to resolve unknown LID via Baileys onWhatsApp
+  const phoneRaw = resolvedJid.replace("@s.whatsapp.net", "").replace("@lid", "").split(":")[0];
+  let phone = normalizePhone(phoneRaw);
+
+  // ─── Handle unknown LID (privacy mode) ───
   if (jid.endsWith("@lid") && !lidToPhone.has(jid)) {
-    try {
-      const lidDigits = jid.replace("@lid", "");
-      const lookup = await sock.onWhatsApp(lidDigits);
-      if (lookup && lookup[0]?.exists) {
-        const realJid = lookup[0].jid;
-        lidToPhone.set(jid, realJid);
+    const pending = pendingLidVerifications.get(jid);
+
+    if (pending) {
+      // User is replying with their phone number — validate it
+      const phoneAttempt = normalizePhone(text);
+      const userByPhone = await prisma.user.findUnique({ where: { phoneNumber: phoneAttempt } });
+
+      if (userByPhone && userByPhone.isVerified) {
+        // Success — store mapping
+        lidToPhone.set(jid, phoneAttempt + "@s.whatsapp.net");
         saveLidMapping();
-        resolvedJid = realJid;
-        console.log(`[handler] Resolved LID ${jid} → ${realJid} via onWhatsApp`);
+        pendingLidVerifications.delete(jid);
+        console.log(`[handler] Mapped LID ${jid} → ${phoneAttempt} via user reply`);
+        await sock.sendMessage(jid, {
+          text: "✅ Device linked successfully!\n\nYou can now send your command.",
+        });
+        logInternal("success", "LID mapped", { jid, phone: phoneAttempt });
+        return;
+      } else {
+        // Invalid phone or not registered
+        await sock.sendMessage(jid, {
+          text: "Number not registered or not verified. Please register on the web first.",
+        });
+        pendingLidVerifications.delete(jid);
+        logInternal("error", "LID verification failed", { jid, phoneAttempt });
+        return;
       }
-    } catch {
-      // lookup failed
+    } else {
+      // First message from this unknown LID
+      // Only ask verification if message looks like a real command (not random spam)
+      const looksLikeCommand =
+        /^\/(format|help|today|undo|clear|date)\b/i.test(text) ||
+        /^[a-zA-Z]+-\d+/.test(text);
+
+      if (looksLikeCommand) {
+        await sock.sendMessage(jid, {
+          text: "Unable to identify your account due to WhatsApp privacy mode.\n\nPlease reply with your registered phone number (e.g., 62895...) to link this device. You only need to do this once.",
+        });
+        pendingLidVerifications.set(jid, { requestedAt: Date.now() });
+        console.log(`[handler] Asked LID ${jid} for phone verification`);
+      } else {
+        // Looks like random spam — silent ignore
+        console.log(`[handler] LID mapping not found for ${jid} — silent ignore (random message)`);
+        logInternal("error", "LID mapping missing", { jid });
+      }
+      return;
     }
   }
 
-  const phoneRaw = resolvedJid.replace("@s.whatsapp.net", "").replace("@lid", "").split(":")[0];
-  const phone = normalizePhone(phoneRaw);
-
   console.log(`[handler] jid=${jid} resolvedJid=${resolvedJid} phoneRaw=${phoneRaw} phone=${phone} text=${text.slice(0, 40)}`);
-
-  // If still unresolved LID, silent ignore
-  if (jid.endsWith("@lid") && !lidToPhone.has(jid)) {
-    console.log(`[handler] LID mapping not found for ${jid} — silent ignore`);
-    logInternal("error", "LID mapping missing", { jid });
-    return;
-  }
 
   /* ─── 1. Identify user ─── */
   let user = await prisma.user.findUnique({ where: { phoneNumber: phone } });
