@@ -35,7 +35,7 @@ function loadLidMapping() {
   }
 }
 
-function saveLidMapping() {
+export function saveLidMapping() {
   try {
     const obj = Object.fromEntries(lidToPhone);
     fs.writeFileSync(LID_MAP_PATH, JSON.stringify(obj, null, 2));
@@ -109,7 +109,7 @@ export async function startBot() {
     }
   });
 
-  sock.ev.on("contacts.upsert", (contacts) => {
+  function handleContacts(contacts: any[]) {
     let changed = false;
     for (const contact of contacts) {
       if (contact.lid && contact.id) {
@@ -118,7 +118,10 @@ export async function startBot() {
       }
     }
     if (changed) saveLidMapping();
-  });
+  }
+
+  sock.ev.on("contacts.upsert", handleContacts);
+  sock.ev.on("contacts.update", handleContacts);
 
   sock.ev.on("messages.upsert", async ({ messages, type }) => {
     if (type !== "notify") return;

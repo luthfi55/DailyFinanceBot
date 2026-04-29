@@ -83,12 +83,3 @@ pnpm --filter bot dev
 5. **Language rule**: All code, UI, and bot replies MUST be in English.
 
 ---
-
-## Pending / Next Steps
-
-- [ ] `/dashboard/expenses` page (list + filter all expenses)
-- [ ] Month navigation in calendar & dashboard (currently only current month)
-- [ ] Delete expense from web
-- [ ] Bot: `delete` or edit expense command
-- [ ] Deploy to Railway (environment variables, volume for WA session, BOT_URL across services)
-- [ ] Auto notification / monthly summary via WA (monthly cron)

@@ -1,7 +1,7 @@
 import type { WASocket, proto } from "@whiskeysockets/baileys";
 import { prisma } from "@finance/db";
 import { parseInput } from "./parser";
-import { lidToPhone } from "./bot";
+import { lidToPhone, saveLidMapping } from "./bot";
 
 /* ─── Internal JSON logger ─── */
 function logInternal(status: "success" | "error", message: string, data?: unknown) {
@@ -43,13 +43,31 @@ export async function handleMessage(sock: WASocket, msg: proto.IWebMessageInfo) 
   if (!text) return;
   if (jid.endsWith("@g.us")) return;
 
-  const resolvedJid = jid.endsWith("@lid") ? (lidToPhone.get(jid) ?? jid) : jid;
-  const phoneRaw = resolvedJid.replace("@s.whatsapp.net", "").split(":")[0];
+  let resolvedJid = jid.endsWith("@lid") ? (lidToPhone.get(jid) ?? jid) : jid;
+
+  // Attempt to resolve unknown LID via Baileys onWhatsApp
+  if (jid.endsWith("@lid") && !lidToPhone.has(jid)) {
+    try {
+      const lidDigits = jid.replace("@lid", "");
+      const lookup = await sock.onWhatsApp(lidDigits);
+      if (lookup && lookup[0]?.exists) {
+        const realJid = lookup[0].jid;
+        lidToPhone.set(jid, realJid);
+        saveLidMapping();
+        resolvedJid = realJid;
+        console.log(`[handler] Resolved LID ${jid} → ${realJid} via onWhatsApp`);
+      }
+    } catch {
+      // lookup failed
+    }
+  }
+
+  const phoneRaw = resolvedJid.replace("@s.whatsapp.net", "").replace("@lid", "").split(":")[0];
   const phone = normalizePhone(phoneRaw);
 
   console.log(`[handler] jid=${jid} resolvedJid=${resolvedJid} phoneRaw=${phoneRaw} phone=${phone} text=${text.slice(0, 40)}`);
 
-  // Jika LID dan tidak ada mapping, kita tidak bisa identifikasi nomor telepon
+  // If still unresolved LID, silent ignore
   if (jid.endsWith("@lid") && !lidToPhone.has(jid)) {
     console.log(`[handler] LID mapping not found for ${jid} — silent ignore`);
     logInternal("error", "LID mapping missing", { jid });
