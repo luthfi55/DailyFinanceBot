@@ -51,10 +51,7 @@ export async function handleMessage(sock: WASocket, msg: proto.IWebMessageInfo) 
 
   // Jika LID dan tidak ada mapping, kita tidak bisa identifikasi nomor telepon
   if (jid.endsWith("@lid") && !lidToPhone.has(jid)) {
-    console.log(`[handler] LID mapping not found for ${jid}`);
-    await sock.sendMessage(jid, {
-      text: "Unable to identify your phone number. Please try again in a moment, or send a message to the bot first to establish contact.",
-    });
+    console.log(`[handler] LID mapping not found for ${jid} — silent ignore`);
     logInternal("error", "LID mapping missing", { jid });
     return;
   }
@@ -64,10 +61,7 @@ export async function handleMessage(sock: WASocket, msg: proto.IWebMessageInfo) 
   if (!user) user = await prisma.user.findFirst({ where: { phoneNumber: phone } });
 
   if (!user) {
-    console.log(`[handler] User not found for phone=${phone} (raw=${phoneRaw})`);
-    await sock.sendMessage(jid, {
-      text: "This number is not registered. Please register on the web and verify your WhatsApp number.",
-    });
+    console.log(`[handler] User not found for phone=${phone} (raw=${phoneRaw}) — silent ignore`);
     logInternal("error", "Unregistered phone", { phone, raw: phoneRaw });
     return;
   }
@@ -274,16 +268,8 @@ export async function handleMessage(sock: WASocket, msg: proto.IWebMessageInfo) 
 
     case "unknown":
     default: {
-      const reply =
-        "❌ Invalid format\n\n" +
-        "Please use:\n" +
-        "category-amount\n" +
-        "or\n" +
-        "category-amount-day-month-year\n\n" +
-        "Example:\n" +
-        "food-14000";
-      await sock.sendMessage(jid, { text: reply });
-      logInternal("error", "Invalid format", { text: text.slice(0, 50) });
+      console.log(`[handler] Invalid format from ${phone} — silent ignore`);
+      logInternal("error", "Invalid format - silent ignore", { text: text.slice(0, 50) });
       return;
     }
   }
