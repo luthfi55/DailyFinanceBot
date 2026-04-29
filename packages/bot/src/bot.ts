@@ -86,7 +86,7 @@ export async function startBot() {
     if (connection === "open") {
       currentQR = null;
       isConnected = true;
-      console.log("Bot WA terhubung!");
+      console.log("Bot WA connected!");
     }
 
     if (connection === "close") {
@@ -98,7 +98,7 @@ export async function startBot() {
         console.log("Reconnecting bot...");
         startBot();
       } else {
-        console.log("Bot logged out. Menghapus auth_info dan restart...");
+        console.log("Bot logged out. Deleting auth_info and restarting...");
         activeSock = null;
         isConnected = false;
         currentQR = null;
