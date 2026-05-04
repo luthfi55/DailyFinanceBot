@@ -40,7 +40,7 @@ export type ParsedCommand =
   | { type: "month" }
   | { type: "week" }
   | { type: "categories" }
-  | { type: "budget" }
+  | { type: "budget"; category?: string }
   | { type: "last" }
   | { type: "summary" }
   | { type: "expense"; data: ParsedExpense }
@@ -60,6 +60,10 @@ export function parseInput(text: string): ParsedCommand {
   if (lower === "/week") return { type: "week" };
   if (lower === "/categories") return { type: "categories" };
   if (lower === "/budget") return { type: "budget" };
+  if (lower.startsWith("/budget ")) {
+    const category = trimmed.slice(7).trim();
+    if (category) return { type: "budget", category };
+  }
   if (lower === "/last") return { type: "last" };
   if (lower === "/summary") return { type: "summary" };
 

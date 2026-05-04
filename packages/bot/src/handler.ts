@@ -114,7 +114,7 @@ export async function handleMessage(sock: WASocket, msg: proto.IWebMessageInfo) 
       // First message from this unknown LID
       // Only ask verification if message looks like a real command (not random spam)
       const looksLikeCommand =
-        /^\/(format|help|today|undo|clear|date|month|week|categories|budget|last|summary)\b/i.test(text) ||
+        /^\/(format|help|today|undo|clear|date|month|week|categories|budget|last|summary)(\s|$)/i.test(text) ||
         /^[a-zA-Z]+-\d+/.test(text);
 
       if (looksLikeCommand) {
@@ -203,6 +203,7 @@ export async function handleMessage(sock: WASocket, msg: proto.IWebMessageInfo) 
         "• /date DD-Month-YYYY — expenses by date\n" +
         "• /categories — list available categories\n" +
         "• /budget — remaining budget this month\n" +
+        "• /budget <category> — budget detail for a category\n" +
         "• /last — view last expense\n" +
         "• /undo — remove last expense\n" +
         "• /clear — clear all expenses\n\n" +
@@ -386,7 +387,86 @@ export async function handleMessage(sock: WASocket, msg: proto.IWebMessageInfo) 
       const now = new Date();
       const year = now.getFullYear();
       const month = now.getMonth() + 1;
+      const label = now.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
 
+      // ─── Category-specific budget (/budget food) ───
+      if (parsed.category) {
+        const categoryName = parsed.category;
+
+        const category = await prisma.category.findFirst({
+          where: { userId: user.id, name: { equals: categoryName, mode: "insensitive" }, year, month },
+        });
+
+        if (!category) {
+          const monthCats = await prisma.category.findMany({
+            where: { userId: user.id, year, month },
+            select: { name: true },
+          });
+          const names = monthCats.map((c: { name: string }) => c.name).join(", ") || "None";
+          await sock.sendMessage(jid, {
+            text: `Category "${categoryName}" not found.\nAvailable categories: ${names}\n\nAdd categories on the web app first.`,
+          });
+          logInternal("error", "/budget category not found", { category: categoryName, available: names });
+          return;
+        }
+
+        const catBudget = await prisma.categoryBudget.findFirst({
+          where: { userId: user.id, categoryId: category.id, year, month },
+        });
+
+        const catExpenses = await prisma.expense.findMany({
+          where: {
+            userId: user.id,
+            categoryId: category.id,
+            date: { gte: startOfMonth(now), lte: endOfMonth(now) },
+          },
+          orderBy: { date: "desc" },
+        });
+
+        const totalSpent = catExpenses.reduce((s, e) => s + e.amount, 0);
+        const budgetAmount = catBudget?.amount || 0;
+        const remaining = budgetAmount - totalSpent;
+
+        // Daily average: spent / days passed so far (or total days if month ended)
+        const today = now.getDate();
+        const daysInMonth = new Date(year, month, 0).getDate();
+        const daysPassed = Math.min(today, daysInMonth);
+        const dailyAvg = daysPassed > 0 ? Math.round(totalSpent / daysPassed) : 0;
+
+        // Projected monthly spend at current rate
+        const projected = Math.round(dailyAvg * daysInMonth);
+
+        const expenseLines = catExpenses.map((e) => {
+          const d = fmtDate(e.date);
+          return `• ${d}: ${fmtNum(e.amount)}`;
+        }).join("\n");
+
+        const lines = [
+          `💰 Budget: ${fmtNum(budgetAmount)}`,
+          `💸 Spent: ${fmtNum(totalSpent)}`,
+          `✅ Remaining: ${fmtNum(remaining)}`,
+          `📊 Daily avg: ${fmtNum(dailyAvg)}`,
+          `📈 Projected: ${fmtNum(projected)}`,
+        ];
+
+        const reply =
+          `📊 ${category.name} — ${label}\n\n` +
+          lines.join("\n") +
+          (catExpenses.length > 0 ? `\n\n📝 Expenses:\n${expenseLines}` : "\n\n📝 No expenses this month.");
+
+        await sock.sendMessage(jid, { text: reply });
+        logInternal("success", "/budget category command", {
+          category: category.name,
+          budgetAmount,
+          totalSpent,
+          remaining,
+          dailyAvg,
+          projected,
+        });
+        return;
+      }
+
+      // ─── Overall monthly budget (/budget) ───
       const budget = await prisma.monthlyBudget.findFirst({
         where: { userId: user.id, year, month },
         include: { allocations: true },
@@ -404,7 +484,6 @@ export async function handleMessage(sock: WASocket, msg: proto.IWebMessageInfo) 
       const startingBalance = budget?.startingBalance || 0;
       const remaining = startingBalance - totalAllocations - totalExpenses;
 
-      const label = now.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
       const lines = [
         `💰 Starting balance: ${fmtNum(startingBalance)}`,
         `📤 Allocations: ${fmtNum(totalAllocations)}`,

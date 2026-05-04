@@ -82,6 +82,7 @@ Incoming message
 | `/date DD-Month-YYYY` | List expenses for specific date |
 | `/categories` | List available categories for current month |
 | `/budget` | Show starting balance, allocations, expenses, remaining |
+| `/budget <category>` | Budget detail for a category: budget, spent, remaining, daily avg, projected, expense list |
 | `/last` | View last recorded expense |
 | `/undo` | Delete last expense |
 | `/clear` | Delete all expenses |
