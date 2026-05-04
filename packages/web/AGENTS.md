@@ -32,23 +32,22 @@
 | `/dashboard` | Stat cards, Budget summary, monthly calendar, monthly breakdown, Add Expense inline form |
 | `/dashboard/expenses` | (Pending) Full expense list + filter page |
 | `/settings` | Monthly Budget, Category Budgets, user categories, WA phone verification |
-| `/admin` | QR Code panel for bot WA + DefaultCategory CRUD (ADMIN only) |
+| `/admin` | QR Code panel for bot WA (ADMIN only) |
 
 ### API Routes
 
 | Route | Method | Description |
 |---|---|---|
 | `/api/auth/[...nextauth]` | GET/POST | NextAuth credentials handler |
-| `/api/auth/register` | POST | Register new user + copy default categories |
+| `/api/auth/register` | POST | Register new user |
 | `/api/expenses` | GET, POST | List & create expense |
 | `/api/expenses/[id]` | DELETE | (Pending) Delete expense |
 | `/api/categories` | GET, POST | List & create user category |
-| `/api/categories/[id]` | PUT, DELETE | Edit & delete category |
+| `/api/categories/[id]` | DELETE | Delete category |
+| `/api/categories/copy` | POST | Copy categories from one month to another |
 | `/api/verify/send` | POST | Store verification code in DB, then call bot `/send-code` |
 | `/api/verify/confirm` | POST | Confirm verification code, set `isVerified=true` |
 | `/api/bot/status` | GET | Proxy to bot Express: status + QR string |
-| `/api/admin/default-categories` | GET, POST | List & create default category (ADMIN) |
-| `/api/admin/default-categories/[id]` | PUT, DELETE | Edit & delete default category (ADMIN) |
 | `/api/budget` | GET, POST | Get/upsert MonthlyBudget (starting balance) |
 | `/api/budget/allocations` | POST | Add BudgetAllocation |
 | `/api/budget/allocations/[id]` | PUT, DELETE | Edit & delete BudgetAllocation |
@@ -105,10 +104,9 @@ error: #ba1a1a
 | `BudgetSummary` | `src/components/` | Dashboard: starting balance → allocations → expenses → remaining |
 | `BudgetForm` | `src/components/` | Settings: set starting balance + CRUD fixed allocations |
 | `CategoryBudgetForm` | `src/components/` | Settings: set budget limit per category per month |
-| `CategoryManager` | `src/components/` | Settings: CRUD user categories |
+| `CategoryManager` | `src/components/` | Settings: CRUD user categories + copy from other months |
 | `PhoneVerification` | `src/components/` | WA number input, verification flow, Change/Cancel buttons |
 | `QRCodePanel` | `src/components/` | Poll bot status, display QR or connected status |
-| `DefaultCategoryManager` | `src/components/` | Admin: CRUD DefaultCategory |
 
 ---
 

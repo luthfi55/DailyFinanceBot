@@ -19,7 +19,8 @@ let activeSock: ReturnType<typeof makeWASocket> | null = null;
 // Maps LID (@lid) → phone JID (@s.whatsapp.net) for WhatsApp privacy-mode contacts
 export const lidToPhone = new Map<string, string>();
 
-const LID_MAP_PATH = path.resolve(process.cwd(), "lid-mapping.json");
+const AUTH_DIR = process.env.AUTH_INFO_PATH || path.resolve(process.cwd(), "auth_info");
+const LID_MAP_PATH = path.join(AUTH_DIR, "lid-mapping.json");
 
 function loadLidMapping() {
   try {
@@ -61,8 +62,10 @@ export async function logoutBot() {
 
 export async function startBot() {
   loadLidMapping();
-  const authPath = path.resolve(process.cwd(), "auth_info");
-  const { state, saveCreds } = await useMultiFileAuthState(authPath);
+  if (!fs.existsSync(AUTH_DIR)) {
+    fs.mkdirSync(AUTH_DIR, { recursive: true });
+  }
+  const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
   const { version } = await fetchLatestBaileysVersion();
 
   const sock = (activeSock = makeWASocket({
@@ -102,8 +105,7 @@ export async function startBot() {
         activeSock = null;
         isConnected = false;
         currentQR = null;
-        const authPath = path.resolve(process.cwd(), "auth_info");
-        fs.rmSync(authPath, { recursive: true, force: true });
+        fs.rmSync(AUTH_DIR, { recursive: true, force: true });
         startBot();
       }
     }

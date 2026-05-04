@@ -39,7 +39,6 @@ User              → id, username (unique), email (unique), password, phoneNumb
 Category          → id, userId, name, color, icon, isDefault, year, month, expenses[], budgets[]
 Expense           → id, userId, categoryId, amount (Int), date, note?, createdAt
 VerificationCode  → id, userId, code, expiresAt, used, createdAt
-DefaultCategory   → id, name (unique), color, icon, order
 MonthlyBudget     → id, userId, year, month, startingBalance (Int), allocations[]
 BudgetAllocation  → id, budgetId, label, amount (Int), order
 CategoryBudget    → id, userId, categoryId, year, month, amount (Int)
@@ -51,7 +50,6 @@ CategoryBudget    → id, userId, categoryId, year, month, amount (Int)
 - `Category`: `@@unique([userId, name, year, month])`
 - `MonthlyBudget`: `@@unique([userId, year, month])`
 - `CategoryBudget`: `@@unique([userId, categoryId, year, month])`
-- `DefaultCategory.name`
 
 ### Relations
 ```

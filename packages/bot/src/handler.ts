@@ -29,6 +29,26 @@ function startOfDay(d: Date) {
 function endOfDay(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
 }
+function startOfWeek(d: Date) {
+  const day = d.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+  const diff = (day + 6) % 7; // days since Monday
+  const result = new Date(d.getFullYear(), d.getMonth(), d.getDate() - diff);
+  result.setHours(0, 0, 0, 0);
+  return result;
+}
+function endOfWeek(d: Date) {
+  const start = startOfWeek(d);
+  const result = new Date(start);
+  result.setDate(start.getDate() + 6);
+  result.setHours(23, 59, 59, 999);
+  return result;
+}
+function startOfMonth(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth(), 1);
+}
+function endOfMonth(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+}
 
 function fmtDate(d: Date) {
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
@@ -94,7 +114,7 @@ export async function handleMessage(sock: WASocket, msg: proto.IWebMessageInfo) 
       // First message from this unknown LID
       // Only ask verification if message looks like a real command (not random spam)
       const looksLikeCommand =
-        /^\/(format|help|today|undo|clear|date)\b/i.test(text) ||
+        /^\/(format|help|today|undo|clear|date|month|week|categories|budget|last|summary)\b/i.test(text) ||
         /^[a-zA-Z]+-\d+/.test(text);
 
       if (looksLikeCommand) {
@@ -177,7 +197,13 @@ export async function handleMessage(sock: WASocket, msg: proto.IWebMessageInfo) 
         "*Commands:*\n" +
         "• /format — show input format\n" +
         "• /today — today's expenses\n" +
+        "• /week — this week's expenses\n" +
+        "• /month — this month's expenses\n" +
+        "• /summary — today + week + month totals\n" +
         "• /date DD-Month-YYYY — expenses by date\n" +
+        "• /categories — list available categories\n" +
+        "• /budget — remaining budget this month\n" +
+        "• /last — view last expense\n" +
         "• /undo — remove last expense\n" +
         "• /clear — clear all expenses\n\n" +
         "🌐 Web: https://daily-finance-bot-web.vercel.app";
@@ -263,6 +289,188 @@ export async function handleMessage(sock: WASocket, msg: proto.IWebMessageInfo) 
       const { count } = await prisma.expense.deleteMany({ where: { userId: user.id } });
       await sock.sendMessage(jid, { text: "⚠️ All expenses have been cleared." });
       logInternal("success", "/clear command", { deletedCount: count });
+      return;
+    }
+
+    case "week": {
+      const now = new Date();
+      const expenses = await prisma.expense.findMany({
+        where: {
+          userId: user.id,
+          date: { gte: startOfWeek(now), lte: endOfWeek(now) },
+        },
+        include: { category: true },
+        orderBy: { date: "desc" },
+      });
+
+      if (expenses.length === 0) {
+        await sock.sendMessage(jid, { text: "📊 No expenses recorded this week." });
+        logInternal("success", "/week empty", {});
+        return;
+      }
+
+      const grouped: Record<string, number> = {};
+      for (const e of expenses) {
+        grouped[e.category.name] = (grouped[e.category.name] || 0) + e.amount;
+      }
+      const total = expenses.reduce((s, e) => s + e.amount, 0);
+      const lines = Object.entries(grouped)
+        .sort((a, b) => b[1] - a[1])
+        .map(([cat, amt]) => `• ${cat}: ${fmtNum(amt)}`)
+        .join("\n");
+      const reply = `📊 This week\n\n${lines}\n\nTotal: ${fmtNum(total)}`;
+
+      await sock.sendMessage(jid, { text: reply });
+      logInternal("success", "/week command", { total });
+      return;
+    }
+
+    case "month": {
+      const now = new Date();
+      const expenses = await prisma.expense.findMany({
+        where: {
+          userId: user.id,
+          date: { gte: startOfMonth(now), lte: endOfMonth(now) },
+        },
+        include: { category: true },
+        orderBy: { date: "desc" },
+      });
+
+      if (expenses.length === 0) {
+        const label = now.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+        await sock.sendMessage(jid, { text: `📊 No expenses recorded for ${label}.` });
+        logInternal("success", "/month empty", {});
+        return;
+      }
+
+      const grouped: Record<string, number> = {};
+      for (const e of expenses) {
+        grouped[e.category.name] = (grouped[e.category.name] || 0) + e.amount;
+      }
+      const total = expenses.reduce((s, e) => s + e.amount, 0);
+      const lines = Object.entries(grouped)
+        .sort((a, b) => b[1] - a[1])
+        .map(([cat, amt]) => `• ${cat}: ${fmtNum(amt)}`)
+        .join("\n");
+      const label = now.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+      const reply = `📊 ${label}\n\n${lines}\n\nTotal: ${fmtNum(total)}`;
+
+      await sock.sendMessage(jid, { text: reply });
+      logInternal("success", "/month command", { total });
+      return;
+    }
+
+    case "categories": {
+      const now = new Date();
+      const cats = await prisma.category.findMany({
+        where: { userId: user.id, year: now.getFullYear(), month: now.getMonth() + 1 },
+        orderBy: { name: "asc" },
+      });
+
+      if (cats.length === 0) {
+        await sock.sendMessage(jid, { text: "📂 No categories set for this month. Add them on the web app first." });
+        logInternal("error", "/categories empty", {});
+        return;
+      }
+
+      const lines = cats.map((c) => `• ${c.name}`).join("\n");
+      const label = now.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+      const reply = `📂 Categories for ${label}:\n\n${lines}`;
+
+      await sock.sendMessage(jid, { text: reply });
+      logInternal("success", "/categories command", { count: cats.length });
+      return;
+    }
+
+    case "budget": {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+
+      const budget = await prisma.monthlyBudget.findFirst({
+        where: { userId: user.id, year, month },
+        include: { allocations: true },
+      });
+
+      const expenses = await prisma.expense.findMany({
+        where: {
+          userId: user.id,
+          date: { gte: startOfMonth(now), lte: endOfMonth(now) },
+        },
+      });
+
+      const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
+      const totalAllocations = budget?.allocations.reduce((s, a) => s + a.amount, 0) || 0;
+      const startingBalance = budget?.startingBalance || 0;
+      const remaining = startingBalance - totalAllocations - totalExpenses;
+
+      const label = now.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+      const lines = [
+        `💰 Starting balance: ${fmtNum(startingBalance)}`,
+        `📤 Allocations: ${fmtNum(totalAllocations)}`,
+        `💸 Expenses: ${fmtNum(totalExpenses)}`,
+        `───────────────`,
+        `✅ Remaining: ${fmtNum(remaining)}`,
+      ];
+
+      const reply = `📊 Budget ${label}\n\n${lines.join("\n")}`;
+      await sock.sendMessage(jid, { text: reply });
+      logInternal("success", "/budget command", { startingBalance, totalAllocations, totalExpenses, remaining });
+      return;
+    }
+
+    case "last": {
+      const lastExpense = await prisma.expense.findFirst({
+        where: { userId: user.id },
+        include: { category: true },
+        orderBy: { createdAt: "desc" },
+      });
+
+      if (!lastExpense) {
+        await sock.sendMessage(jid, { text: "📝 No expenses recorded yet." });
+        logInternal("error", "/last empty", {});
+        return;
+      }
+
+      const dateLabel = lastExpense.date.toDateString() === new Date().toDateString() ? "Today" : fmtDate(lastExpense.date);
+      const reply =
+        `📝 Last expense\n\n` +
+        `Category: ${lastExpense.category.name}\n` +
+        `Amount: ${fmtNum(lastExpense.amount)}\n` +
+        `Date: ${dateLabel}` +
+        (lastExpense.note ? `\nNote: ${lastExpense.note}` : "");
+
+      await sock.sendMessage(jid, { text: reply });
+      logInternal("success", "/last command", { id: lastExpense.id });
+      return;
+    }
+
+    case "summary": {
+      const now = new Date();
+
+      const todayExpenses = await prisma.expense.findMany({
+        where: { userId: user.id, date: { gte: startOfDay(now), lte: endOfDay(now) } },
+      });
+      const todayTotal = todayExpenses.reduce((s, e) => s + e.amount, 0);
+
+      const weekExpenses = await prisma.expense.findMany({
+        where: { userId: user.id, date: { gte: startOfWeek(now), lte: endOfWeek(now) } },
+      });
+      const weekTotal = weekExpenses.reduce((s, e) => s + e.amount, 0);
+
+      const monthExpenses = await prisma.expense.findMany({
+        where: { userId: user.id, date: { gte: startOfMonth(now), lte: endOfMonth(now) } },
+      });
+      const monthTotal = monthExpenses.reduce((s, e) => s + e.amount, 0);
+
+      const reply =
+        `📊 Financial Summary\n\n` +
+        `📅 Today: ${fmtNum(todayTotal)}\n` +
+        `📆 This week: ${fmtNum(weekTotal)}\n` +
+        `🗓️ This month: ${fmtNum(monthTotal)}`;
+
+      await sock.sendMessage(jid, { text: reply });
+      logInternal("success", "/summary command", { todayTotal, weekTotal, monthTotal });
       return;
     }
 

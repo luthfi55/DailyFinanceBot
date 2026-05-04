@@ -37,6 +37,12 @@ export type ParsedCommand =
   | { type: "date"; date: Date }
   | { type: "undo" }
   | { type: "clear" }
+  | { type: "month" }
+  | { type: "week" }
+  | { type: "categories" }
+  | { type: "budget" }
+  | { type: "last" }
+  | { type: "summary" }
   | { type: "expense"; data: ParsedExpense }
   | { type: "unknown" };
 
@@ -50,6 +56,12 @@ export function parseInput(text: string): ParsedCommand {
   if (lower === "/today") return { type: "today" };
   if (lower === "/undo") return { type: "undo" };
   if (lower === "/clear") return { type: "clear" };
+  if (lower === "/month") return { type: "month" };
+  if (lower === "/week") return { type: "week" };
+  if (lower === "/categories") return { type: "categories" };
+  if (lower === "/budget") return { type: "budget" };
+  if (lower === "/last") return { type: "last" };
+  if (lower === "/summary") return { type: "summary" };
 
   // /date DD-Month-YYYY
   if (lower.startsWith("/date ")) {

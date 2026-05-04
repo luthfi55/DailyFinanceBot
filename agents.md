@@ -64,6 +64,7 @@ pnpm --filter bot dev
 | `NEXTAUTH_URL` | `web` | Yes | Public URL of the web app |
 | `ADMIN_USERNAME` | `web` | Yes | Username that auto-gets ADMIN role on register |
 | `BOT_URL` | `web` | Yes | Base URL of bot Express server (e.g. `http://localhost:3001`) |
+| `AUTH_INFO_PATH` | `bot` | No | Baileys auth state directory (set `/app/auth_info` for Railway Volume) |
 
 ---
 

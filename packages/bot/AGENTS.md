@@ -76,7 +76,13 @@ Incoming message
 | `/format` | Reply format guide |
 | `/help` | Reply command list |
 | `/today` | List today's expenses |
+| `/week` | List this week's expenses grouped by category |
+| `/month` | List this month's expenses grouped by category |
+| `/summary` | Snapshot: today + week + month totals |
 | `/date DD-Month-YYYY` | List expenses for specific date |
+| `/categories` | List available categories for current month |
+| `/budget` | Show starting balance, allocations, expenses, remaining |
+| `/last` | View last recorded expense |
 | `/undo` | Delete last expense |
 | `/clear` | Delete all expenses |
 
@@ -147,6 +153,7 @@ pnpm start        # node dist/index.js
 |---|---|---|
 | `DATABASE_URL` | Yes | Supabase Session Pooler |
 | `DIRECT_URL` | Yes | Supabase direct connection |
+| `AUTH_INFO_PATH` | No | Absolute path for Baileys auth state directory (default: `process.cwd()/auth_info`). Set to `/app/auth_info` when using Railway Volume.
 
 ---
 
@@ -155,4 +162,5 @@ pnpm start        # node dist/index.js
 - **Do NOT run `fromMe` messages through the handler** — this prevents infinite self-reply loops.
 - **Do NOT commit `auth_info/` or `lid-mapping.json`** — these contain WA session keys.
 - **LID mapping is persisted** to `lid-mapping.json` and reloaded on restart so privacy-mode contacts remain resolvable.
+- **Railway Volume**: On Railway deployments, create a Volume mounted at `/app/auth_info` and set `AUTH_INFO_PATH=/app/auth_info`. This prevents the bot from logging out on every redeploy.
 - **Testing**: The bot cannot be tested using the same phone number as the bot itself. Use a separate WA number.
